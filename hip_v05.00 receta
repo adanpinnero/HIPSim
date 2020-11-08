@@ -1,0 +1,2265 @@
+turtles-own [nivel_tech nivel_energia soymujer? innovando eratrans?]  ;; define variables propias de tortugas
+patches-own [sustrato-tech sustrato-energia proto-color proto-level]  ;; define variables propias parcelas
+globals [nmax x_acumulado ticks_reset_jerarquico num_agentes]
+;; iniciar el modelo
+to setup
+  clear-all
+  set num_agentes numero_inicial_agentes
+  set ticks_reset_jerarquico 0
+  set x_acumulado 0
+  set nmax 0
+  set layout? false
+  set creo_link? false
+  set convierto_color? false
+  set permeabilidad-muralla-in 0
+  set permeabilidad-muralla-out 0
+  crear-muralla ;; crea una muralla para el vector open
+  ask patches [
+    set sustrato-tech random-float 5 ;; asigna al azar sustrato tec
+    set sustrato-energia random-float 10.0 ;; asigna al azar sustrato energia
+    recolor-grass ;; convierte los valores anteriores en colores
+  ]
+  crear-hubs ;; crea super hubs tec o energia
+  ;;crea los agentes
+  create-turtles numero_inicial_agentes * (1 - %dentro) [
+    ifelse random 2 < 1[
+    set xcor random-x-fuera-muralla
+      set ycor 50 - random-float 100
+      set soymujer? true
+      set eratrans? false
+    ]
+    [
+    set ycor random-y-fuera-muralla
+    set xcor 50 - random-float 100
+      set soymujer? false
+      set eratrans? false
+    ]
+
+    ;;setxy random-y-fuera-muralla
+    set color random-float 140
+    ;;set shape "person"
+    set nivel_tech 0
+    set nivel_energia 50
+  ]
+
+    create-turtles numero_inicial_agentes * (%dentro) [
+
+    set xcor (random-float x-muralla * (1 - random 3))
+    set ycor (random-float y-muralla * (1 - random 3))
+
+
+    ;;setxy random-y-fuera-muralla
+    set color random-float 140
+    ;;set shape "person"
+    set nivel_tech 0
+    set nivel_energia 50
+  ]
+
+  asigna_trans
+  reset-ticks
+end
+
+
+to go
+  if ticks = ticks_reset_jerarquico + 30 [create-turtles 1 [ ;; creo 1 numero_inicial_agentes + 1
+    set xcor 0
+    set ycor 30
+    set size 3
+
+  ]]
+
+  if ticks = ticks_reset_jerarquico + 60 [ ;;creo 10 numero_inicial_agentes + 2 a +11
+    let n 1
+    repeat 10 [
+    create-turtles 1 [
+    set xcor -10 + n * 2
+    set ycor 10
+    set size 2
+      ]
+    set n n + 1]]
+
+    if ticks = ticks_reset_jerarquico + 90 [ ;;creo 10 numero_inicial_agentes + 2 a +11
+    let n 1
+    repeat 30 [
+    create-turtles 1 [
+    set xcor -15 + n
+    set ycor -10
+    set size 2
+      ]
+    set n n + 1]]
+
+
+    if ticks = ticks_reset_jerarquico + 120 [ ;;creo 10 numero_inicial_agentes + 2 a +11
+    let n 1
+    repeat 60 [
+    create-turtles 1 [
+    set xcor -30 + n
+    set ycor -30
+    set size 2
+     ]
+    set n n + 1]]
+
+
+    if ticks = ticks_reset_jerarquico + 150 [
+    let n 1
+    repeat 10 [
+    ask turtle (num_agentes + 1) [
+     create-link-with turtle (num_agentes + 1 + n) ]
+    set n n + 1
+    ]
+    set n 1
+    repeat 10 [
+    ask turtle (num_agentes + 1 + n) [
+     create-link-with turtle (num_agentes + 1 + 10 + n * 3 - 2)
+     create-link-with turtle (num_agentes + 1 + 10 + 1 + n * 3 - 2)
+     create-link-with turtle (num_agentes + 1 + 10 + 2 + n * 3 - 2)]
+    set n n + 1
+    ]
+    set n 1
+    repeat 30 [
+    ask turtle (num_agentes + 1 + 10 + n) [
+     create-link-with turtle (num_agentes + 1 + 10 + 30 + n * 2 - 1)
+     create-link-with turtle (num_agentes + 1 + 10 + 30 + 1 + n * 2 - 1)
+    set n n + 1
+    ]
+    ]
+  ]
+  if ticks = ticks_reset_jerarquico + 200 [
+    let n 1
+    repeat 101[
+      ask turtle (num_agentes + n) [ask link-neighbors [if random-float 100.0 < 90 [set color [color] of myself ]]]
+    set n n + 1
+  ]
+]
+  if ticks = ticks_reset_jerarquico + 220 [ask turtles [set layout? true]]
+  if ticks = ticks_reset_jerarquico + 250 [ask turtles [
+    set nivel_energia 200
+    set convierto_color? true
+    set creo_link? true
+    set permeabilidad-muralla-in 2
+    set permeabilidad-muralla-out 2
+
+  ]]
+
+
+
+
+  ;;set x_acumulado x_acumulado + count turtles with [shape = "x"]
+  ;;update-clusters
+  ask turtles [
+    ask my-links [set color [color] of myself ]
+    ifelse verinnova? [ifelse shape = "x" [show-turtle][hide-turtle]][show-turtle]
+
+    let discriminada false
+    if soymujer? = true and feminismo? = true and random-float 1 > feminismo [set discriminada true]
+    gira        ;; pide girar a los agentes
+    move          ;; mueve los agentes (y verificara si están quietos o cruzan muralla)
+    if expulsion? = true and ticks > ticks_reset_jerarquico + 250 [expulsion] ;; verifica si un agente esta muerto y lo elimina
+    eat           ;; el agente come energia y tec del sustrato
+    if discriminada = false [color_co];; si cumplen las condiciones conversa color
+    if discriminada = false [link_co] ;; si cumplen las condiciones crea links
+    haz_proto
+  ]
+  reload_acelerador_tech_publico
+  reload_acelerador_energia_publico
+  reload_energia_fuera_muralla
+  regrow-sustrato-energia
+  regrow-sustrato-tech
+  resize-nodes
+
+
+  if layout? = true [layout]
+  tick
+  my-update-plots ;; plot the population counts
+end
+
+;; recolor the grass to indicate how much has been eaten
+to recolor-grass
+  set pcolor black
+  if capa_tech?[
+    set pcolor scale-color green sustrato-tech 0 20]
+  if capa_energia?[
+    set pcolor scale-color red sustrato-energia 0 20]
+
+  if proto-level > 1[
+    set proto-level proto-level - 1
+    set pcolor scale-color proto-color proto-level 0 turnos_dura_proto]
+end
+
+;; regrow the grass
+to regrow-sustrato-energia
+  ask patches [
+    set sustrato-energia sustrato-energia + ratio-reposicion-recursos
+    if sustrato-energia > 10.0 [
+      set sustrato-energia 10.0
+    ]
+    recolor-grass
+  ]
+end
+;; regrow the grass
+to regrow-sustrato-tech
+    ask patches [
+    set sustrato-tech sustrato-tech + random-float 5 - random-float 5
+    if sustrato-tech > 10.0 [
+      set sustrato-tech 10.0
+    ]
+   recolor-grass
+  ]
+end
+
+;; sheep procedure, sheep eat grass
+to eat
+  ;; check to make sure there is grass here
+  if ( sustrato-energia >= nivel_energia-gain-from-grass ) [
+    ;; increment the sheep's nivel_tech
+    set nivel_energia nivel_energia + nivel_energia-gain-from-grass
+    ;; decrement the grass
+    set sustrato-energia sustrato-energia - nivel_energia-gain-from-grass
+    recolor-grass
+  ]
+
+    ;; check to make sure there is grass here
+  if ( sustrato-tech >= 1 ) [
+    ;; increment the sheep's nivel_tech
+    set nivel_tech nivel_tech + 1
+    ;; decrement the grass
+    set nivel_tech (nivel_tech - 0.5)
+
+  ]
+end
+
+;; asks those sheep with no nivel_tech to die
+to expulsion
+  if nivel_energia <= 0  [
+    if count my-links > 0 [ask my-links [die]]
+    set xcor random-x-fuera-muralla
+    set ycor random-y-fuera-muralla
+  ]
+  ;;if random-float 1000 < 10  [
+  ;;  if count my-links > 0 [ask my-links [die]]
+  ;;  set xcor random-x-fuera-muralla
+  ;;  set ycor random-y-fuera-muralla
+  ;;]
+end
+
+;; update the plots in the interface tab
+to my-update-plots
+  ;;plot count turtles
+end
+
+;; sheep procedure, the sheep changes its heading
+to gira
+  ;; gira a izquierda o derecha de forma aleatoria con media recto
+  rt random 90
+  lt random 90
+end
+
+;; sheep procedure, the sheep moves which costs it nivel_tech
+to move
+  ifelse nivel_energia > nivel_energia_quieto [
+    set nivel_energia nivel_energia - movement-cost ;; reduce the nivel_tech by the cost of movement
+    let cruzo? cruzolamuralla?
+    if cruzo? = "in" [if permeabilidad-muralla-in <= random 100 [rt 180]]
+    if cruzo? = "out" [ifelse permeabilidad-muralla-out <= random 100 [rt 180][ask n-of (p_romper_link_al_salir * count my-links) my-links [die]]]
+    forward 1
+  ]
+  [set nivel_energia nivel_energia - coste_quieto] ;; reduce the nivel_tech by the cost of movement]
+end
+
+to-report cruzolamuralla?
+  if shape = "person" [report "no"] ;; si soy trans la muralla no existe para mi
+  let x_actual xcor
+  let y_actual ycor
+  forward 1
+  let x_futura xcor
+  let y_futura ycor
+  forward -1
+  ifelse abs y_actual >= y-muralla or abs x_actual >= x-muralla [;;estoy fuera
+    ifelse abs y_futura >= y-muralla or abs x_futura >= x-muralla[report "no"];;sigo fuera
+    [report "in"]];; entro dentro
+  [ifelse abs y_futura >= y-muralla or abs x_futura >= x-muralla[report "out"];;estoy dentro voy fuera
+    [report "no"]];;estoy dentro sigo dentro
+  ;;report "in"
+  ;;report "out"
+  report "no"
+end
+
+
+
+to reload_energia_fuera_muralla
+
+  ask patches with [parcela_interior = false][
+    ;; give grass to the patches, color it shades of green
+    set sustrato-energia 10
+    recolor-grass ;; change the world green
+   ]
+
+end
+
+to-report parcela_interior
+  ifelse abs pycor > y-muralla or abs pxcor > x-muralla [report false];;estoy fuera
+  [report true];;estoy dentro
+end
+to-report tortuga_interior
+  ifelse abs ycor > y-muralla or abs xcor > x-muralla [report false];;estoy fuera
+  [report true];;estoy dentro
+end
+
+
+
+to reload_acelerador_tech_publico
+  ask patches with [pxcor <= 5 and pxcor > -1 * 5 and pycor < 5 and pycor >= -1 * 5][
+    ;; give grass to the patches, color it shades of green
+    recolor-grass ;; change the world green
+   ]
+ask patches with [pxcor <= acelerador_tech_publico and pxcor > -1 * acelerador_tech_publico and pycor < acelerador_tech_publico and pycor >= -1 * acelerador_tech_publico][
+    ;; give grass to the patches, color it shades of green
+    set sustrato-tech 10
+    recolor-grass ;; change the world green
+   ]
+
+end
+to reload_acelerador_energia_publico
+  ask patches with [pxcor <= 5 and pxcor > -1 * 5 and pycor < 5 and pycor >= -1 * 5][
+    ;; give grass to the patches, color it shades of green
+    recolor-grass ;; change the world green
+   ]
+ask patches with [pxcor <= acelerador_energia_publico and pxcor > -1 * acelerador_energia_publico and pycor < acelerador_energia_publico and pycor >= -1 * acelerador_energia_publico][
+    ;; give grass to the patches, color it shades of green
+    set sustrato-energia 10
+    recolor-grass ;; change the world green
+   ]
+end
+
+to color_co
+  if not tortuga_interior and random-float 100 < diversidad [set color random 149];;diversidad
+   ;; interact with Von Neumann neighborhood
+  if tortuga_interior and random 100 < probabilidad_co  [
+  ask turtles-on neighbors [
+      if tortuga_interior[
+    if color != [color] of myself and convierto_color? = true  [
+      set color [color] of myself
+  ]]]]
+end
+
+to link_co
+if tortuga_interior and random 100 < probabilidad_link and count my-links < max_links and count links < max_total_links [
+  ask turtles-on neighbors [
+      if tortuga_interior[
+        if color = [color] of myself and creo_link? = true [
+          create-link-with myself
+  ]]]]
+    if tortuga_interior and random 100 < probabilidad_link and shape = "person" and count my-links < max_links_trans[ ;;soy trans y creo links con los que no son de mi color y con limite de links x3
+      ask turtles-on neighbors [
+      create-link-with myself
+      ]
+    ]
+  ifelse not verlinks? [ask my-links [hide-link]][ask my-links [show-link]]
+
+end
+
+
+to resize-nodes
+  ifelse size_nodes? [ask turtles [ set size sqrt (count my-links + 1) ]]
+  [ask turtles [ set size 1 ]]
+end
+
+to layout
+  ;; the number 3 here is arbitrary; more repetitions slows down the
+  ;; model, but too few gives poor layouts
+  if count turtles with [tortuga_interior = true] > 0[
+  repeat 3 [
+    ;; the more turtles we have to fit into the same amount of space,
+    ;; the smaller the inputs to layout-spring we'll need to use
+    let factor sqrt count turtles with [tortuga_interior = true]
+    ;; numbers here are arbitrarily chosen for pleasing appearance
+    layout-spring turtles with [tortuga_interior = true] links (tautness / factor) (zero * 7 / factor) (repulsion / factor)
+
+
+
+
+    display  ;; for smooth animation
+  ]
+  ;; don't bump the edges of the world
+  let x-offset max [xcor] of turtles with [tortuga_interior = true] + min [xcor] of turtles with [tortuga_interior = true]
+  let y-offset max [ycor] of turtles with [tortuga_interior = true] + min [ycor] of turtles with [tortuga_interior = true]
+  ;; big jumps look funny, so only adjust a little each time
+  set x-offset limit-magnitude x-offset 0.1
+  set y-offset limit-magnitude y-offset 0.1
+  ask turtles with [tortuga_interior = true] [ setxy (xcor - x-offset / 2) (ycor - y-offset / 2) ]
+  ]
+end
+
+to-report limit-magnitude [number limit]
+  if number > limit [ report limit ]
+  if number < (- limit) [ report (- limit) ]
+  report number
+end
+
+to crear-muralla
+
+  let cx 0                ;; x coordinate of patch you want to circle
+  let cy 0                ;; y coordinate of patch you want to circle
+  crt 1 [                 ;; create a single drawing turtle
+    set heading 0
+    setxy -1 * x-muralla -1 * y-muralla       ;; move it to the highlight patch + the radius
+    pd                    ;; put the pen down
+    set color white
+    repeat 2 * y-muralla [forward 1]
+    right 90
+    repeat 2 * x-muralla [forward 1]
+    right 90
+    repeat 2 * y-muralla [forward 1]
+    right 90
+    repeat 2 * x-muralla [forward 1]
+    die                   ;; remove the turtle
+  ]
+
+end
+
+to-report random-x-fuera-muralla
+  let min_ x-muralla
+  let max_ 50
+  let signo 1
+  if random-float 2 < 1 [set signo -1]
+    report (min_ + random (max_ - min_))* signo
+end
+
+to-report random-y-fuera-muralla
+  let min_ y-muralla
+  let max_ 50
+    let signo 1
+  if random-float 2 < 1 [set signo -1]
+    report (min_ + random (max_ - min_)) * signo
+end
+
+to crear-hubs
+  ask patches with [pxcor <= acelerador_tech_publico and pxcor > -1 * acelerador_tech_publico and pycor < acelerador_tech_publico and pycor >= -1 * acelerador_tech_publico][
+    ;; give grass to the patches, color it shades of green
+    set sustrato-tech 10
+    recolor-grass ;; change the world green
+  ]
+  ask patches with [pxcor <= acelerador_energia_publico and pxcor > -1 * acelerador_energia_publico and pycor < acelerador_energia_publico and pycor >= -1 * acelerador_energia_publico][
+    ;; give grass to the patches, color it shades of green
+    set sustrato-energia 10
+    recolor-grass ;; change the world green
+  ]
+end
+to asigna_trans
+    ;; designa los agentes trans
+  ifelse count turtles with [shape = "person"] < (porcentaje_trans * numero_inicial_agentes / 100)[ ;; si el numero de trans < los que yo quiero
+   ask n-of (porcentaje_trans * numero_inicial_agentes / 100 - count turtles with [shape = "person"]) turtles [
+      if shape != "x" [set shape "person"]
+    ]
+  ] ;;creo mas
+
+  [ ;; si el numero de trans > los que yo quiero
+    ask n-of (count turtles with [shape = "person"] - porcentaje_trans * numero_inicial_agentes / 100) turtles with [shape = "person"] [
+      if shape != "x" [set shape "default"]
+    ] ;;cambio color sobran
+  ]
+end
+
+to haz_proto
+  if proto-level > 1 [
+    set color proto-color
+  ]
+
+  if count my-links > 3 [
+  if tortuga_interior and random 100 < probabilidad_proto * 10[
+    set proto-color color
+    set proto-level turnos_dura_proto]
+  ]
+  ;;proto-color
+  ;;proto-level
+end
+
+to kill_popes
+  ask turtles [
+    if count my-links > max_links_trans * 0.5 [
+    if count my-links > 0 [ask my-links [die]]
+    set xcor random-x-fuera-muralla
+    set ycor random-y-fuera-muralla
+    ]]
+end
+
+to update-clusters
+  asigna_trans
+
+  ask turtles [
+    let n1 0
+    let n2 0
+    if innovando > 0 [set innovando innovando - 1]
+    if innovando = 0 and shape = "x" [ifelse eratrans? = true [set shape "person" set eratrans? false][set shape "default"]]
+    ;;let my-points links with [ shade-of? color [ color ] of myself ]
+    set n1 count my-links with [shade-of? color [ color ] of myself]
+    ask link-neighbors with[shade-of? color [ color ] of myself][
+      let my-n2 count my-links with [shade-of? color [ color ] of myself]
+      set n2 (n2 + my-n2)]
+    ;;if n1 > 8 and n2 > 20
+    if n1 + n2 > nmax [set nmax (n1 + n2)]
+    if n1 + n2 > umbral_innova [
+      if shape = "trans"[set eratrans? true]
+      set shape "x"
+      set innovando 10
+      ask link-neighbors with [shade-of? color [ color ] of myself][set shape "x" set innovando 10 if shape = "trans"[set eratrans? true]
+        ask link-neighbors with [shade-of? color [ color ] of myself][set shape "x" set innovando 10 if shape = "trans"[set eratrans? true]]
+      ]
+    ]
+    stop
+ ]
+end
+@#$#@#$#@
+GRAPHICS-WINDOW
+0
+10
+789
+800
+-1
+-1
+7.733
+1
+10
+1
+1
+1
+0
+1
+1
+1
+-50
+50
+-50
+50
+1
+1
+1
+ticks
+30.0
+
+BUTTON
+795
+10
+861
+43
+setup
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+865
+10
+928
+43
+go
+go
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+0
+
+PLOT
+1060
+480
+1270
+630
+innovacion
+Time
+Population
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"pen-2" 1.0 0 -13840069 true "" "plot count turtles with [shape = \"x\"]"
+
+SLIDER
+795
+45
+955
+78
+numero_inicial_agentes
+numero_inicial_agentes
+0
+3000
+1000.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1055
+380
+1265
+413
+movement-cost
+movement-cost
+0
+2.0
+1.0
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+800
+245
+1010
+278
+ratio-reposicion-recursos
+ratio-reposicion-recursos
+0
+0.5
+0.15
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1180
+285
+1365
+318
+nivel_tech-gain-from-grass
+nivel_tech-gain-from-grass
+0
+2.0
+1.2
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1180
+250
+1365
+283
+ACELERADOR_TECH_PUBLICO
+ACELERADOR_TECH_PUBLICO
+0
+5
+5.0
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+800
+175
+980
+208
+acelerador_energia_publico
+acelerador_energia_publico
+0
+5
+0.0
+0.1
+1
+NIL
+HORIZONTAL
+
+SWITCH
+1180
+210
+1312
+243
+capa_tech?
+capa_tech?
+1
+1
+-1000
+
+SWITCH
+800
+105
+932
+138
+capa_energia?
+capa_energia?
+1
+1
+-1000
+
+SLIDER
+800
+210
+1010
+243
+nivel_energia-gain-from-grass
+nivel_energia-gain-from-grass
+0
+5
+5.0
+0.1
+1
+NIL
+HORIZONTAL
+
+PLOT
+1275
+480
+1475
+630
+nivel tec agentes
+NIL
+NIL
+0.0
+100.0
+0.0
+300.0
+false
+false
+"" ""
+PENS
+"default" 10.0 1 -16777216 true "" "histogram [nivel_tech] of turtles"
+
+SWITCH
+1375
+110
+1522
+143
+convierto_color?
+convierto_color?
+1
+1
+-1000
+
+SWITCH
+1375
+185
+1525
+218
+creo_link?
+creo_link?
+1
+1
+-1000
+
+SWITCH
+800
+140
+930
+173
+expulsion?
+expulsion?
+0
+1
+-1000
+
+SWITCH
+1375
+255
+1550
+288
+layout?
+layout?
+1
+1
+-1000
+
+PLOT
+795
+440
+995
+590
+color in / color out
+NIL
+NIL
+0.0
+100.0
+0.0
+100.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -2674135 true "" "histogram [color] of turtles with [tortuga_interior = false]"
+"pen-1" 1.0 1 -13840069 true "" "histogram [color] of turtles with [tortuga_interior = true]"
+
+PLOT
+1060
+635
+1270
+785
+energia agentes dentro
+NIL
+NIL
+0.0
+100.0
+0.0
+200.0
+false
+false
+"" ""
+PENS
+"default" 10.0 1 -16777216 true "" "histogram [nivel_energia] of turtles with [tortuga_interior = true]"
+
+SLIDER
+1055
+415
+1265
+448
+nivel_energia_quieto
+nivel_energia_quieto
+0
+100
+100.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1010
+105
+1175
+138
+permeabilidad-muralla-in
+permeabilidad-muralla-in
+0
+100
+0.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1010
+140
+1175
+173
+permeabilidad-muralla-out
+permeabilidad-muralla-out
+0
+100
+0.0
+1
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+800
+80
+950
+98
+RECURSO
+11
+0.0
+1
+
+TEXTBOX
+1010
+80
+1160
+98
+OPEN_
+11
+0.0
+1
+
+BUTTON
+1010
+245
+1175
+278
+ACTUALIZA MURALLA
+clear-drawing\ncrear-muralla\nask turtles [\nif not tortuga_interior [ask my-links [die]]]\n\nask patches[recolor-grass]
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SLIDER
+1010
+175
+1175
+208
+x-muralla
+x-muralla
+0
+50
+40.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1010
+210
+1175
+243
+y-muralla
+y-muralla
+0
+50
+40.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1180
+105
+1352
+138
+porcentaje_trans
+porcentaje_trans
+0
+100
+0.0
+1
+1
+NIL
+HORIZONTAL
+
+BUTTON
+1180
+140
+1355
+173
+NIL
+asigna_trans
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+TEXTBOX
+1185
+75
+1335
+93
+TRANS_
+11
+0.0
+1
+
+TEXTBOX
+1200
+190
+1350
+208
+TEC_
+11
+0.0
+1
+
+TEXTBOX
+1375
+80
+1525
+98
+CO_
+11
+0.0
+1
+
+SLIDER
+1375
+145
+1547
+178
+probabilidad_co
+probabilidad_co
+0
+100
+5.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1375
+220
+1547
+253
+probabilidad_link
+probabilidad_link
+0
+100
+40.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1375
+290
+1547
+323
+tautness
+tautness
+0
+10
+1.0
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1375
+325
+1547
+358
+zero
+zero
+0
+10
+1.0
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1485
+480
+1657
+513
+repulsion
+repulsion
+0
+10
+1.0
+0.1
+1
+NIL
+HORIZONTAL
+
+PLOT
+795
+285
+995
+435
+Links
+NIL
+NIL
+0.0
+10.0
+0.0
+100.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -8053223 true "" "plot count links"
+
+SLIDER
+1485
+515
+1657
+548
+max_links
+max_links
+0
+10
+5.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1485
+550
+1657
+583
+max_total_links
+max_total_links
+0
+6000
+5000.0
+100
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+1060
+360
+1210
+378
+FAST_
+11
+0.0
+1
+
+TEXTBOX
+1335
+360
+1485
+378
+PROTO_
+11
+0.0
+1
+
+SLIDER
+1485
+585
+1657
+618
+p_romper_link_al_salir
+p_romper_link_al_salir
+0
+1
+1.0
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1215
+15
+1387
+48
+FEMINISMO
+FEMINISMO
+0
+1
+0.7
+0.1
+1
+NIL
+HORIZONTAL
+
+SWITCH
+1085
+15
+1212
+48
+FEMINISMO?
+FEMINISMO?
+1
+1
+-1000
+
+SLIDER
+1290
+380
+1462
+413
+turnos_dura_proto
+turnos_dura_proto
+0
+100
+50.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1290
+415
+1462
+448
+probabilidad_proto
+probabilidad_proto
+0
+1
+0.0
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+950
+15
+1042
+48
+%dentro
+%dentro
+0
+1
+0.0
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1055
+450
+1265
+483
+coste_quieto
+coste_quieto
+0
+2
+0.0
+0.1
+1
+NIL
+HORIZONTAL
+
+SWITCH
+810
+807
+912
+840
+VerLinks?
+VerLinks?
+0
+1
+-1000
+
+SLIDER
+1660
+515
+1785
+548
+max_links_trans
+max_links_trans
+0
+100
+30.0
+1
+1
+NIL
+HORIZONTAL
+
+BUTTON
+1565
+360
+1647
+393
+NIL
+kill_popes
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SLIDER
+1535
+620
+1660
+653
+diversidad
+diversidad
+0
+100
+10.0
+1
+1
+NIL
+HORIZONTAL
+
+SWITCH
+810
+772
+932
+805
+size_nodes?
+size_nodes?
+1
+1
+-1000
+
+MONITOR
+1535
+660
+1592
+705
+NIL
+nmax
+17
+1
+11
+
+PLOT
+1275
+635
+1475
+785
+plot 1
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot nmax"
+
+SLIDER
+1490
+725
+1662
+758
+umbral_innova
+umbral_innova
+0
+500
+20.0
+1
+1
+NIL
+HORIZONTAL
+
+SWITCH
+810
+737
+927
+770
+verInnova?
+verInnova?
+1
+1
+-1000
+
+MONITOR
+1570
+405
+1652
+450
+NIL
+x_acumulado
+17
+1
+11
+
+BUTTON
+810
+627
+927
+660
+auto_jerarquico
+ask links [die]\nask turtles with [tortuga_interior = true] [set nivel_energia 0 expulsion]\nset num_agentes num_agentes + 101\nset convierto_color? false\nset creo_link? false\nset layout? false\nset tautness 6\nset zero 1\nset repulsion 6\nset max_links 0\nset porcentaje_trans 0\nasigna_trans\nset permeabilidad-muralla-in 0\nset permeabilidad-muralla-out 0\nset ticks_reset_jerarquico ticks
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+810
+662
+892
+695
+auto_red
+;;ask links [die]\nset convierto_color? true\nset creo_link? true\nset layout? true\nset tautness 3\nset repulsion 1\nset max_links 1\nset porcentaje_trans 5\nset max_links_trans 20\nset permeabilidad-muralla-in 50\nset permeabilidad-muralla-out 50\n
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+810
+697
+907
+730
+auto_rizoma
+ask links [die]\nset convierto_color? true\nset creo_link? true\nset layout? true\nset tautness 1\nset max_links 5\nset porcentaje_trans 15\nset max_links_trans 30\nset permeabilidad-muralla-in 100\nset permeabilidad-muralla-out 90
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+@#$#@#$#@
+## TODO
+1.- VIDA UTIL AGENTE Y SU MUERTE + NACIMIENTO OTRO
+2.- PROTO
+3.- CAPA INNOVACION FEROMONAS
+4.- FEMINISMO
+5.- ALEATOREIDAD COLOR CON EL PASO DEL TIEMPO
+6.- ALEATOREIDAD LINKS CON EL PASO DEL TIEMPO
+
+- en un sistema jerarquico, si abro aumenta poblacion y links sin aumentar recursos. forma mas barata de innovar.
+- Si mato popes las redes del interior se me van al exterior
+De jerarquico mejora mucho al ampliar links de 1 a 2 y tautness de 6 a 1 (mas posibilidad enlaces y menos rigidez con el jefe y con el resto)
+
+
+
+## ACKNOWLEDGMENT
+
+This model is from Chapter Four of the book "Introduction to Agent-Based Modeling: Modeling Natural, Social and Engineered Complex Systems with NetLogo", by Uri Wilensky & William Rand.
+
+* Wilensky, U. & Rand, W. (2015). Introduction to Agent-Based Modeling: Modeling Natural, Social and Engineered Complex Systems with NetLogo. Cambridge, MA. MIT Press.
+
+This model is in the IABM Textbook folder of the NetLogo Models Library. The model, as well as any updates to the model, can also be found on the textbook website: http://www.intro-to-abm.com/.
+
+## WHAT IS IT?
+
+This is the fourth model in a set of five models that build towards a predator prey model of population dynamics.  This fourth model gives the sheep the ability to reproduce.
+
+## HOW IT WORKS
+
+The model creates a population of sheep that wander around the landscape. Moving around costs some energy, and when their energy gets too low, sheep die. However, the sheep can eat grass in the environment to regain energy and the grass regrows over time.  If the energy of a sheep gets above a certain level, it can reproduce.
+
+## HOW TO USE IT
+
+Set the NUMBER-OF-SHEEP slider and press SETUP to create the initial population. You can also change the MOVEMENT-COST slider to affect the energy cost of movement for the sheep. The GRASS-REGROWTH-RATE slider affects how fast the grass grows back, while the ENERGY-GAIN-FROM-GRASS slider affects how much energy the sheep can gain from eating the grass.
+
+After this, press the GO button to make the sheep move around the landscape, and eat the grass.
+
+## THINGS TO NOTICE
+
+Is there any relationship between where the sheep die off and where they reproduce?
+
+Do all the sheep reproduce at the same time? Why is that?
+
+## THINGS TO TRY
+
+How does reproduction affect the model results?  Is it easier to get the sheep to continue to live?  For instance, do the values of GRASS-REGROWTH-RATE, MOVEMENT-COST and ENERGY-GAIN-FROM-GRASS necessary to balance the sheep population change when the sheep reproduce?
+
+## RELATED MODELS
+
+The Wolf Sheep Predation Model in the Biology section of the NetLogo models library.
+
+## CREDITS AND REFERENCES
+
+This model is a simplified version of:
+
+* Wilensky, U. (1997).  NetLogo Wolf Sheep Predation model.  http://ccl.northwestern.edu/netlogo/models/WolfSheepPredation.  Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
+
+## HOW TO CITE
+
+This model is part of the textbook, “Introduction to Agent-Based Modeling: Modeling Natural, Social and Engineered Complex Systems with NetLogo.”
+
+If you mention this model or the NetLogo software in a publication, we ask that you include the citations below.
+
+For the model itself:
+
+* Wilensky, U. (2007).  NetLogo Wolf Sheep Simple 4 model.  http://ccl.northwestern.edu/netlogo/models/WolfSheepSimple4.  Center for Connected Learning and Computer-Based Modeling, Northwestern Institute on Complex Systems, Northwestern University, Evanston, IL.
+
+Please cite the NetLogo software as:
+
+* Wilensky, U. (1999). NetLogo. http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
+
+Please cite the textbook as:
+
+* Wilensky, U. & Rand, W. (2015). Introduction to Agent-Based Modeling: Modeling Natural, Social and Engineered Complex Systems with NetLogo. Cambridge, MA. MIT Press.
+
+## COPYRIGHT AND LICENSE
+
+Copyright 2007 Uri Wilensky.
+
+![CC BY-NC-SA 3.0](http://ccl.northwestern.edu/images/creativecommons/byncsa.png)
+
+This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 License.  To view a copy of this license, visit https://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 559 Nathan Abbott Way, Stanford, California 94305, USA.
+
+Commercial licenses are also available. To inquire about commercial licenses, please contact Uri Wilensky at uri@northwestern.edu.
+
+<!-- 2007 -->
+@#$#@#$#@
+default
+true
+0
+Polygon -7500403 true true 150 5 40 250 150 205 260 250
+
+airplane
+true
+0
+Polygon -7500403 true true 150 0 135 15 120 60 120 105 15 165 15 195 120 180 135 240 105 270 120 285 150 270 180 285 210 270 165 240 180 180 285 195 285 165 180 105 180 60 165 15
+
+arrow
+true
+0
+Polygon -7500403 true true 150 0 0 150 105 150 105 293 195 293 195 150 300 150
+
+box
+false
+0
+Polygon -7500403 true true 150 285 285 225 285 75 150 135
+Polygon -7500403 true true 150 135 15 75 150 15 285 75
+Polygon -7500403 true true 15 75 15 225 150 285 150 135
+Line -16777216 false 150 285 150 135
+Line -16777216 false 150 135 15 75
+Line -16777216 false 150 135 285 75
+
+bug
+true
+0
+Circle -7500403 true true 96 182 108
+Circle -7500403 true true 110 127 80
+Circle -7500403 true true 110 75 80
+Line -7500403 true 150 100 80 30
+Line -7500403 true 150 100 220 30
+
+butterfly
+true
+0
+Polygon -7500403 true true 150 165 209 199 225 225 225 255 195 270 165 255 150 240
+Polygon -7500403 true true 150 165 89 198 75 225 75 255 105 270 135 255 150 240
+Polygon -7500403 true true 139 148 100 105 55 90 25 90 10 105 10 135 25 180 40 195 85 194 139 163
+Polygon -7500403 true true 162 150 200 105 245 90 275 90 290 105 290 135 275 180 260 195 215 195 162 165
+Polygon -16777216 true false 150 255 135 225 120 150 135 120 150 105 165 120 180 150 165 225
+Circle -16777216 true false 135 90 30
+Line -16777216 false 150 105 195 60
+Line -16777216 false 150 105 105 60
+
+car
+false
+0
+Polygon -7500403 true true 300 180 279 164 261 144 240 135 226 132 213 106 203 84 185 63 159 50 135 50 75 60 0 150 0 165 0 225 300 225 300 180
+Circle -16777216 true false 180 180 90
+Circle -16777216 true false 30 180 90
+Polygon -16777216 true false 162 80 132 78 134 135 209 135 194 105 189 96 180 89
+Circle -7500403 true true 47 195 58
+Circle -7500403 true true 195 195 58
+
+circle
+false
+0
+Circle -7500403 true true 0 0 300
+
+circle 2
+false
+0
+Circle -7500403 true true 0 0 300
+Circle -16777216 true false 30 30 240
+
+cow
+false
+0
+Polygon -7500403 true true 200 193 197 249 179 249 177 196 166 187 140 189 93 191 78 179 72 211 49 209 48 181 37 149 25 120 25 89 45 72 103 84 179 75 198 76 252 64 272 81 293 103 285 121 255 121 242 118 224 167
+Polygon -7500403 true true 73 210 86 251 62 249 48 208
+Polygon -7500403 true true 25 114 16 195 9 204 23 213 25 200 39 123
+
+cylinder
+false
+0
+Circle -7500403 true true 0 0 300
+
+dot
+false
+0
+Circle -7500403 true true 90 90 120
+
+face happy
+false
+0
+Circle -7500403 true true 8 8 285
+Circle -16777216 true false 60 75 60
+Circle -16777216 true false 180 75 60
+Polygon -16777216 true false 150 255 90 239 62 213 47 191 67 179 90 203 109 218 150 225 192 218 210 203 227 181 251 194 236 217 212 240
+
+face neutral
+false
+0
+Circle -7500403 true true 8 7 285
+Circle -16777216 true false 60 75 60
+Circle -16777216 true false 180 75 60
+Rectangle -16777216 true false 60 195 240 225
+
+face sad
+false
+0
+Circle -7500403 true true 8 8 285
+Circle -16777216 true false 60 75 60
+Circle -16777216 true false 180 75 60
+Polygon -16777216 true false 150 168 90 184 62 210 47 232 67 244 90 220 109 205 150 198 192 205 210 220 227 242 251 229 236 206 212 183
+
+fish
+false
+0
+Polygon -1 true false 44 131 21 87 15 86 0 120 15 150 0 180 13 214 20 212 45 166
+Polygon -1 true false 135 195 119 235 95 218 76 210 46 204 60 165
+Polygon -1 true false 75 45 83 77 71 103 86 114 166 78 135 60
+Polygon -7500403 true true 30 136 151 77 226 81 280 119 292 146 292 160 287 170 270 195 195 210 151 212 30 166
+Circle -16777216 true false 215 106 30
+
+flag
+false
+0
+Rectangle -7500403 true true 60 15 75 300
+Polygon -7500403 true true 90 150 270 90 90 30
+Line -7500403 true 75 135 90 135
+Line -7500403 true 75 45 90 45
+
+flower
+false
+0
+Polygon -10899396 true false 135 120 165 165 180 210 180 240 150 300 165 300 195 240 195 195 165 135
+Circle -7500403 true true 85 132 38
+Circle -7500403 true true 130 147 38
+Circle -7500403 true true 192 85 38
+Circle -7500403 true true 85 40 38
+Circle -7500403 true true 177 40 38
+Circle -7500403 true true 177 132 38
+Circle -7500403 true true 70 85 38
+Circle -7500403 true true 130 25 38
+Circle -7500403 true true 96 51 108
+Circle -16777216 true false 113 68 74
+Polygon -10899396 true false 189 233 219 188 249 173 279 188 234 218
+Polygon -10899396 true false 180 255 150 210 105 210 75 240 135 240
+
+house
+false
+0
+Rectangle -7500403 true true 45 120 255 285
+Rectangle -16777216 true false 120 210 180 285
+Polygon -7500403 true true 15 120 150 15 285 120
+Line -16777216 false 30 120 270 120
+
+leaf
+false
+0
+Polygon -7500403 true true 150 210 135 195 120 210 60 210 30 195 60 180 60 165 15 135 30 120 15 105 40 104 45 90 60 90 90 105 105 120 120 120 105 60 120 60 135 30 150 15 165 30 180 60 195 60 180 120 195 120 210 105 240 90 255 90 263 104 285 105 270 120 285 135 240 165 240 180 270 195 240 210 180 210 165 195
+Polygon -7500403 true true 135 195 135 240 120 255 105 255 105 285 135 285 165 240 165 195
+
+line
+true
+0
+Line -7500403 true 150 0 150 300
+
+line half
+true
+0
+Line -7500403 true 150 0 150 150
+
+link
+true
+0
+Line -7500403 true 150 0 150 300
+
+link direction
+true
+0
+Line -7500403 true 150 150 30 225
+Line -7500403 true 150 150 270 225
+
+moose
+false
+0
+Polygon -7500403 true true 196 228 198 297 180 297 178 244 166 213 136 213 106 213 79 227 73 259 50 257 49 229 38 197 26 168 26 137 46 120 101 122 147 102 181 111 217 121 256 136 294 151 286 169 256 169 241 198 211 188
+Polygon -7500403 true true 74 258 87 299 63 297 49 256
+Polygon -7500403 true true 25 135 15 186 10 200 23 217 25 188 35 141
+Polygon -7500403 true true 270 150 253 100 231 94 213 100 208 135
+Polygon -7500403 true true 225 120 204 66 207 29 185 56 178 27 171 59 150 45 165 90
+Polygon -7500403 true true 225 120 249 61 241 31 265 56 272 27 280 59 300 45 285 90
+
+moose-face
+false
+0
+Circle -7566196 true true 101 110 95
+Circle -7566196 true true 111 170 77
+Polygon -7566196 true true 135 243 140 267 144 253 150 272 156 250 158 258 161 241
+Circle -16777216 true false 127 222 9
+Circle -16777216 true false 157 222 8
+Circle -1 true false 118 143 16
+Circle -1 true false 159 143 16
+Polygon -7566196 true true 106 135 88 135 71 111 79 95 86 110 111 121
+Polygon -7566196 true true 205 134 190 135 185 122 209 115 212 99 218 118
+Polygon -7566196 true true 118 118 95 98 69 84 23 76 8 35 27 19 27 40 38 47 48 16 55 23 58 41 71 35 75 15 90 19 86 38 100 49 111 76 117 99
+Polygon -7566196 true true 167 112 190 96 221 84 263 74 276 30 258 13 258 35 244 38 240 11 230 11 226 35 212 39 200 15 192 18 195 43 169 64 165 92
+
+pentagon
+false
+0
+Polygon -7500403 true true 150 15 15 120 60 285 240 285 285 120
+
+person
+false
+0
+Circle -7500403 true true 110 5 80
+Polygon -7500403 true true 105 90 120 195 90 285 105 300 135 300 150 225 165 300 195 300 210 285 180 195 195 90
+Rectangle -7500403 true true 127 79 172 94
+Polygon -7500403 true true 195 90 240 150 225 180 165 105
+Polygon -7500403 true true 105 90 60 150 75 180 135 105
+
+plant
+false
+0
+Rectangle -7500403 true true 135 90 165 300
+Polygon -7500403 true true 135 255 90 210 45 195 75 255 135 285
+Polygon -7500403 true true 165 255 210 210 255 195 225 255 165 285
+Polygon -7500403 true true 135 180 90 135 45 120 75 180 135 210
+Polygon -7500403 true true 165 180 165 210 225 180 255 120 210 135
+Polygon -7500403 true true 135 105 90 60 45 45 75 105 135 135
+Polygon -7500403 true true 165 105 165 135 225 105 255 45 210 60
+Polygon -7500403 true true 135 90 120 45 150 15 180 45 165 90
+
+sheep
+false
+15
+Circle -1 true true 203 65 88
+Circle -1 true true 70 65 162
+Circle -1 true true 150 105 120
+Polygon -7500403 true false 218 120 240 165 255 165 278 120
+Circle -7500403 true false 214 72 67
+Rectangle -1 true true 164 223 179 298
+Polygon -1 true true 45 285 30 285 30 240 15 195 45 210
+Circle -1 true true 3 83 150
+Rectangle -1 true true 65 221 80 296
+Polygon -1 true true 195 285 210 285 210 240 240 210 195 210
+Polygon -7500403 true false 276 85 285 105 302 99 294 83
+Polygon -7500403 true false 219 85 210 105 193 99 201 83
+
+square
+false
+0
+Rectangle -7500403 true true 30 30 270 270
+
+square 2
+false
+0
+Rectangle -7500403 true true 30 30 270 270
+Rectangle -16777216 true false 60 60 240 240
+
+star
+false
+0
+Polygon -7500403 true true 151 1 185 108 298 108 207 175 242 282 151 216 59 282 94 175 3 108 116 108
+
+target
+false
+0
+Circle -7500403 true true 0 0 300
+Circle -16777216 true false 30 30 240
+Circle -7500403 true true 60 60 180
+Circle -16777216 true false 90 90 120
+Circle -7500403 true true 120 120 60
+
+tree
+false
+0
+Circle -7500403 true true 118 3 94
+Rectangle -6459832 true false 120 195 180 300
+Circle -7500403 true true 65 21 108
+Circle -7500403 true true 116 41 127
+Circle -7500403 true true 45 90 120
+Circle -7500403 true true 104 74 152
+
+triangle
+false
+0
+Polygon -7500403 true true 150 30 15 255 285 255
+
+triangle 2
+false
+0
+Polygon -7500403 true true 150 30 15 255 285 255
+Polygon -16777216 true false 151 99 225 223 75 224
+
+truck
+false
+0
+Rectangle -7500403 true true 4 45 195 187
+Polygon -7500403 true true 296 193 296 150 259 134 244 104 208 104 207 194
+Rectangle -1 true false 195 60 195 105
+Polygon -16777216 true false 238 112 252 141 219 141 218 112
+Circle -16777216 true false 234 174 42
+Rectangle -7500403 true true 181 185 214 194
+Circle -16777216 true false 144 174 42
+Circle -16777216 true false 24 174 42
+Circle -7500403 false true 24 174 42
+Circle -7500403 false true 144 174 42
+Circle -7500403 false true 234 174 42
+
+turtle
+true
+0
+Polygon -10899396 true false 215 204 240 233 246 254 228 266 215 252 193 210
+Polygon -10899396 true false 195 90 225 75 245 75 260 89 269 108 261 124 240 105 225 105 210 105
+Polygon -10899396 true false 105 90 75 75 55 75 40 89 31 108 39 124 60 105 75 105 90 105
+Polygon -10899396 true false 132 85 134 64 107 51 108 17 150 2 192 18 192 52 169 65 172 87
+Polygon -10899396 true false 85 204 60 233 54 254 72 266 85 252 107 210
+Polygon -7500403 true true 119 75 179 75 209 101 224 135 220 225 175 261 128 261 81 224 74 135 88 99
+
+wheel
+false
+0
+Circle -7500403 true true 3 3 294
+Circle -16777216 true false 30 30 240
+Line -7500403 true 150 285 150 15
+Line -7500403 true 15 150 285 150
+Circle -7500403 true true 120 120 60
+Line -7500403 true 216 40 79 269
+Line -7500403 true 40 84 269 221
+Line -7500403 true 40 216 269 79
+Line -7500403 true 84 40 221 269
+
+wolf
+false
+0
+Polygon -7500403 true true 75 225 97 249 112 252 122 252 114 242 102 241 89 224 94 181 64 113 46 119 31 150 32 164 61 204 57 242 85 266 91 271 101 271 96 257 89 257 70 242
+Polygon -7500403 true true 216 73 219 56 229 42 237 66 226 71
+Polygon -7500403 true true 181 106 213 69 226 62 257 70 260 89 285 110 272 124 234 116 218 134 209 150 204 163 192 178 169 185 154 189 129 189 89 180 69 166 63 113 124 110 160 111 170 104
+Polygon -6459832 true true 252 143 242 141
+Polygon -6459832 true true 254 136 232 137
+Line -16777216 false 75 224 89 179
+Line -16777216 false 80 159 89 179
+Polygon -6459832 true true 262 138 234 149
+Polygon -7500403 true true 50 121 36 119 24 123 14 128 6 143 8 165 8 181 7 197 4 233 23 201 28 184 30 169 28 153 48 145
+Polygon -7500403 true true 171 181 178 263 187 277 197 273 202 267 187 260 186 236 194 167
+Polygon -7500403 true true 187 163 195 240 214 260 222 256 222 248 212 245 205 230 205 155
+Polygon -7500403 true true 223 75 226 58 245 44 244 68 233 73
+Line -16777216 false 89 181 112 185
+Line -16777216 false 31 150 47 118
+Polygon -16777216 true false 235 90 250 91 255 99 248 98 244 92
+Line -16777216 false 236 112 246 119
+Polygon -16777216 true false 278 119 282 116 274 113
+Line -16777216 false 189 201 203 161
+Line -16777216 false 90 262 94 272
+Line -16777216 false 110 246 119 252
+Line -16777216 false 190 266 194 274
+Line -16777216 false 218 251 219 257
+Polygon -16777216 true false 230 67 228 54 222 62 224 72
+Line -16777216 false 246 67 234 64
+Line -16777216 false 229 45 235 68
+Line -16777216 false 30 150 30 165
+
+x
+false
+0
+Polygon -7500403 true true 270 75 225 30 30 225 75 270
+Polygon -7500403 true true 30 75 75 30 270 225 225 270
+@#$#@#$#@
+NetLogo 6.1.1
+@#$#@#$#@
+@#$#@#$#@
+@#$#@#$#@
+<experiments>
+  <experiment name="experiment1" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup
+inicia</setup>
+    <go>go</go>
+    <timeLimit steps="2000"/>
+    <metric>count links</metric>
+    <enumeratedValueSet variable="nivel_energia-gain-from-grass">
+      <value value="1.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max_links">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="expulsion?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nivel_energia_quieto">
+      <value value="40"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="sistema_inicial">
+      <value value="&quot;jerarquico&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="probabilidad_co">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ratio-reposicion-recursos">
+      <value value="0"/>
+      <value value="0.01"/>
+      <value value="0.02"/>
+      <value value="0.03"/>
+      <value value="0.04"/>
+      <value value="0.05"/>
+      <value value="0.06"/>
+      <value value="0.07"/>
+      <value value="0.08"/>
+      <value value="0.09"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="layout?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tautness">
+      <value value="6"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="%dentro">
+      <value value="0.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="y-muralla">
+      <value value="40"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="FEMINISMO">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="zero">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="porcentaje_trans">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="x-muralla">
+      <value value="40"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ACELERADOR_TECH_PUBLICO">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max_total_links">
+      <value value="1500"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="VerLinks?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="permeabilidad-muralla-out">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="convierto_color?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="turnos_dura_proto">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="probabilidad_proto">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="repulsion">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="probabilidad_link">
+      <value value="40"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max_links_trans">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="FEMINISMO?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="capa_energia?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="movement-cost">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="creo_link?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="p_romper_link_al_salir">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nivel_tech-gain-from-grass">
+      <value value="1.2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="acelerador_energia_publico">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="capa_tech?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="coste_quieto">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="permeabilidad-muralla-in">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="numero_inicial_agentes">
+      <value value="1078"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="feminismo" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup
+inicia</setup>
+    <go>go</go>
+    <exitCondition>count links &gt; 1100</exitCondition>
+    <metric>count links</metric>
+    <enumeratedValueSet variable="nivel_energia-gain-from-grass">
+      <value value="1.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max_links">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="expulsion?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nivel_energia_quieto">
+      <value value="40"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="sistema_inicial">
+      <value value="&quot;jerarquico&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="probabilidad_co">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ratio-reposicion-recursos">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="layout?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tautness">
+      <value value="6"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="%dentro">
+      <value value="0.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="y-muralla">
+      <value value="40"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="FEMINISMO">
+      <value value="0.7"/>
+      <value value="0.8"/>
+      <value value="0.9"/>
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="zero">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="porcentaje_trans">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="x-muralla">
+      <value value="40"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ACELERADOR_TECH_PUBLICO">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max_total_links">
+      <value value="1500"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="VerLinks?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="permeabilidad-muralla-out">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="convierto_color?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="turnos_dura_proto">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="probabilidad_proto">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="repulsion">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="probabilidad_link">
+      <value value="40"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max_links_trans">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="FEMINISMO?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="capa_energia?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="movement-cost">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="creo_link?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="p_romper_link_al_salir">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nivel_tech-gain-from-grass">
+      <value value="1.2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="acelerador_energia_publico">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="capa_tech?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="coste_quieto">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="permeabilidad-muralla-in">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="numero_inicial_agentes">
+      <value value="1078"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="x_acumulado" repetitions="5" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="10000"/>
+    <metric>x_acumulado</metric>
+    <enumeratedValueSet variable="max_links">
+      <value value="1"/>
+      <value value="2"/>
+      <value value="3"/>
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nivel_energia-gain-from-grass">
+      <value value="1.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="expulsion?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nivel_energia_quieto">
+      <value value="40"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="sistema_inicial">
+      <value value="&quot;jerarquico&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="probabilidad_co">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="y-muralla">
+      <value value="40"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tautness">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="layout?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ratio-reposicion-recursos">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="%dentro">
+      <value value="0.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="FEMINISMO">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="umbral_innova">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="zero">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="verInnova?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="porcentaje_trans">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="x-muralla">
+      <value value="40"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ACELERADOR_TECH_PUBLICO">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max_total_links">
+      <value value="5000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="VerLinks?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="permeabilidad-muralla-out">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="convierto_color?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="turnos_dura_proto">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="probabilidad_proto">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="probabilidad_link">
+      <value value="40"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="repulsion">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max_links_trans">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="size_nodes?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="FEMINISMO?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="capa_energia?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="movement-cost">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="creo_link?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="diversidad">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="p_romper_link_al_salir">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nivel_tech-gain-from-grass">
+      <value value="1.2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="acelerador_energia_publico">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="capa_tech?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="coste_quieto">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="permeabilidad-muralla-in">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="numero_inicial_agentes">
+      <value value="1078"/>
+    </enumeratedValueSet>
+  </experiment>
+</experiments>
+@#$#@#$#@
+@#$#@#$#@
+default
+0.0
+-0.2 0 0.0 1.0
+0.0 1 1.0 0.0
+0.2 0 0.0 1.0
+link direction
+true
+0
+Line -7500403 true 150 150 90 180
+Line -7500403 true 150 150 210 180
+@#$#@#$#@
+1
+@#$#@#$#@
