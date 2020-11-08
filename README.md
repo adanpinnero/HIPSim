@@ -1,2 +1,10 @@
 # HIPSim
 Agent Based Model to simulate innovation ecosystems under HIP (www.modelohip.net) context.
+
+La innovación no se puede sistematizar porque depende de un hecho genuinamente humano: la creatividad. Pensamos, sin embargo, que podemos recrear las condiciones ambientales, contextuales o relacionales que caracterizan los espacios donde se innova, que definimos como ecosistemas de innovación y creatividad. Esos ecosistemas no son entornos ideales o místicos, son simplemente redes de personas conversando, comunidades de comunidades con relaciones significativas y productivas. 
+Pensamos que esta idea tan sencilla nos permite realizar una aproximación matemática al abstracto universo de los ecosistemas de innovación. Nos hemos propuesto crear un modelo que reproduzca la interacción entre al menos mil individuos, en el que cada iteración tenga tantos grados de libertad como individuos en la comunidad, preservando así la naturaleza de la humana de la innovación. Al mismo tiempo, el modelo debe de ser sensible al impacto que producen los cambios en los seis vectores definidos del HIP (Hexágono de la innovación pública), pudiendo funcionar como una herramienta útil para visualizar diferentes escenarios en un entorno virtual.
+Esto es HIP-SIM, un código informático que modela el comportamiento de un individuo en relación con los demás y con el propio entorno, y es capaz de simular de forma iterativa la interacción entre miles de individuos midiendo la innovación que se produce a lo largo del tiempo. Un modelo matemático que utiliza los conceptos de las redes (nodo, enlace, hub, clúster, distancia, densidad, …) para visualizar el impacto de los vectores HIP en ecosistemas de innovación. Para ello, usamos metodologías ABM (Agent Based Modeling) en código abierto y bajo software libre (NetLogo licencia GNU U.Wilensky – Center for Connected Learning and Computer-Based Modeling, Northwestern University. Evanston, IL). 
+
+References:
+About netlogo and Models Library:
+Wilensky, U. (1999). NetLogo. http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
